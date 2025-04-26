@@ -4,12 +4,16 @@ namespace QuickDirTree;
 
 public class Texts
 {
+    public string Wirnning { get; set; } = "警告";
     public string TargetDirectryEmpty { get; set; } = "フォルダを設定してください。";
-    public string TargetDirectryNotFound { get; set; }= "フォルダが見つかりませんでした。";
-    public string DirectoryEmpty { get; set; }= "(空)";
-    public string DirectoryOpenFailed { get; set; }= "(フォルダを開けませんでした)";
-    public string ChangeDirectry { get; set; }= "フォルダ変更";
-    public string Exit { get; set; }= "終了";
+    public string TargetDirectryNotFound { get; set; } = "フォルダが見つかりませんでした。";
+    public string Confirm { get; set; } = "確認";
+    public string ConfirmDeleteTargetDirectry { get; set; } = "登録フォルダから削除しますか？";
+    public string DirectoryEmpty { get; set; } = "(空)";
+    public string DirectoryOpenFailed { get; set; } = "(フォルダを開けませんでした)";
+    public string TargetDirectryList { get; set; } = "登録フォルダ";
+    public string AddTargetDirectry { get; set; } = "(追加)";
+    public string Exit { get; set; } = "終了";
 
 
     private static string g_fileName = null!;

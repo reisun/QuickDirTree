@@ -25,32 +25,36 @@ public class LeftMenu
     public void Show(Point showPonint)
     {
         Hide();
-        string dir = Settings.Get().TargetDirectry.Value;
-        if (string.IsNullOrEmpty(dir))
+        var dirListList = Settings.Get().TargetDirectries.Value;
+        if (!dirListList.Any())
         {
             MessageBox.Show(Texts.Get().TargetDirectryEmpty);
-            if (!Utils.SelectFolder(dir).Bind(v => Ok(dir = v)).IsOk)
+            if (!Utils.SelectFolder("").Bind(v => Ok(dirListList = [v])).IsOk)
             {
                 return;
             }
         }
-        if (!Directory.Exists(dir))
-        {
-            MessageBox.Show(Texts.Get().TargetDirectryNotFound);
-            if (!Utils.SelectFolder(dir).Bind(v => Ok(dir = v)).IsOk)
-            {
-                return;
-            }
-        }
-        Settings.Get().TargetDirectry.Value = dir;
+        Settings.Get().TargetDirectries.Value = dirListList;
 
-        UpdateSubMenuItems(this._menu.Items, dir);
+        this._menu.Items.Clear();
+        if (!dirListList.Any())
+        {   // 0ヶ
+            this._menu.Items.Add(Texts.Get().DirectoryEmpty);
+        }
+        else if (!dirListList.Skip(1).Any())
+        {   // 1ヶ
+            UpdateSubMenuItems(this._menu.Items, dirListList.First());
+        }
+        else
+        {   // N
+            this._menu.Items.AddRange(dirListList.Select(CreateSubMenu).ToArray());
+        }
 
         this._dummyForm.Show();
         this._dummyForm.Activate();
 
-        // カーソルの左側に表示
-        showPonint.Offset(-this._menu.Width, 0);
+        // カーソルの横中心に表示
+        showPonint.Offset(-this._menu.Width / 2, 0);
 
         this._menu.Show(showPonint);
     }

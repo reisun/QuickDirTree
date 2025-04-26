@@ -32,11 +32,10 @@ class Program
         var rightMenu = new RightMenu();
         
         trayIcon.Visible = true;
-        trayIcon.Icon = SystemIconManager.GetIconFromPath(Settings.Get().TargetDirectry.Value);
-        trayIcon.Text = Settings.Get().TargetDirectry.Value ?? "";
-        Settings.Get().TargetDirectry.Subscribe(v => {
-            trayIcon.Icon = SystemIconManager.GetIconFromPath(v);
-            trayIcon.Text = v ?? "";
+        trayIcon.Text = "QuickDirTree";
+        trayIcon.Icon = Utils.GetTrayIcon(Settings.Get().TargetDirectries.Value);
+        Settings.Get().TargetDirectries.Subscribe(vlist => {
+            trayIcon.Icon = Utils.GetTrayIcon(Settings.Get().TargetDirectries.Value);
         });
         trayIcon.MouseUp += (s, e) =>
         {

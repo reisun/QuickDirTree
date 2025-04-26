@@ -6,18 +6,18 @@ namespace QuickDirTree;
 
 public class SettingsModel
 {
-    public string TargetDirectry { get; set; } = "";
+    public List<string> TargetDirectries { get; set; } = [];
 }
 
 public class Settings
 {
     private readonly SettingsModel _model;
-    public ReactiveProperty<string> TargetDirectry { get; }
+    public ReactiveProperty<List<string>> TargetDirectries { get; }
 
     private Settings(SettingsModel model) {
         this._model = model;
-        this.TargetDirectry = new ReactiveProperty<string>(this._model.TargetDirectry);
-        this.TargetDirectry.Subscribe(v => model.TargetDirectry = v);
+        this.TargetDirectries = new ReactiveProperty<List<string>>(this._model.TargetDirectries);
+        this.TargetDirectries.Subscribe(v => model.TargetDirectries = v);
     }
 
     private static string g_fileName = null!;

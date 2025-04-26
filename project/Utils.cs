@@ -13,6 +13,14 @@ public static class Utils
             return versionInfo?.FileVersion ?? "0.0.0.0";
     }
 
+    public static Icon? GetTrayIcon(List<string> targetDirecties) {
+        var iconPath = 
+            !targetDirecties.Any() ? Path.GetTempPath() // 0ヶ
+            : !targetDirecties.Skip(1).Any() ? targetDirecties.First() // 1ヶのみ
+            : Path.GetTempPath();
+        return SystemIconManager.GetIconFromPath(iconPath);
+    }
+
     public static Result<string> SelectFolder(string prev)
     {
         var dialog = new FolderBrowserDialog();
