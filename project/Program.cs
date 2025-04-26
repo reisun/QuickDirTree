@@ -31,10 +31,11 @@ class Program
         var leftMenu = new LeftMenu();
         var rightMenu = new RightMenu();
         
-        trayIcon.Icon = SystemIconManager.GetIconFromPath(Path.GetTempPath());
         trayIcon.Visible = true;
+        trayIcon.Icon = SystemIconManager.GetIconFromPath(Settings.Get().TargetDirectry.Value);
         trayIcon.Text = Settings.Get().TargetDirectry.Value ?? "";
         Settings.Get().TargetDirectry.Subscribe(v => {
+            trayIcon.Icon = SystemIconManager.GetIconFromPath(v);
             trayIcon.Text = v ?? "";
         });
         trayIcon.MouseUp += (s, e) =>

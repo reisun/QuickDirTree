@@ -49,6 +49,9 @@ public class LeftMenu
         this._dummyForm.Show();
         this._dummyForm.Activate();
 
+        // カーソルの左側に表示
+        showPonint.Offset(-this._menu.Width, 0);
+
         this._menu.Show(showPonint);
     }
     public void Hide()

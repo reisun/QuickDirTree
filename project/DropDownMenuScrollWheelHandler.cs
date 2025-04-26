@@ -23,6 +23,7 @@
 
     private IntPtr activeHwnd;
     private ToolStripDropDown activeMenu;
+    private int wheelDeltaAccumulator = 0;
 
     public bool PreFilterMessage(ref Message m)
     {
@@ -34,7 +35,22 @@
         else if (m.Msg == 0x20A && this.activeMenu != null) // WM_MOUSEWHEEL
         {
             int delta = (short)(ushort)(((uint)(ulong)m.WParam) >> 16);
-            handleDelta(this.activeMenu, delta);
+
+            wheelDeltaAccumulator += delta;
+            while (Math.Abs(wheelDeltaAccumulator) >= 120)
+            {
+                if (wheelDeltaAccumulator > 0)
+                {
+                    // 上方向へのスクロール処理
+                    handleDelta(this.activeMenu, 120);
+                    wheelDeltaAccumulator -= 120;
+                }
+                else
+                {
+                    handleDelta(this.activeMenu, -120);
+                    wheelDeltaAccumulator += 120;
+                }
+            }
             return true;
         }
         return false;
@@ -52,17 +68,14 @@
             return;
         var firstItem = ts.Items[0];
         var lastItem = ts.Items[ts.Items.Count - 1];
-        if (lastItem.Bounds.Bottom < ts.Height && firstItem.Bounds.Top > 0)
+        const int TOP_BOTTOM_MARGIN = 28;
+        if (delta > 0 && TOP_BOTTOM_MARGIN <= firstItem.Bounds.Top)
             return;
-        delta = delta / -4;
-        if (delta < 0 && firstItem.Bounds.Top - delta > 9)
-        {
-            delta = firstItem.Bounds.Top - 9;
-        }
-        else if (delta > 0 && delta > lastItem.Bounds.Bottom - ts.Height + 9)
-        {
-            delta = lastItem.Bounds.Bottom - ts.Height + 9;
-        }
+        if (delta < 0 && lastItem.Bounds.Bottom <= (ts.Height - TOP_BOTTOM_MARGIN))
+            return;
+        int height = (lastItem.Bounds.Top - firstItem.Bounds.Top) / (ts.Items.Count - 1);
+        // delta = 120 が 標準の１ノック
+        delta = height * (-delta / 120);
         if (delta != 0)
             ScrollInternal(ts, delta);
     }
