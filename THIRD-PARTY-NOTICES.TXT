@@ -1,0 +1,60 @@
+﻿License notice for Newtonsoft.Json (v13.0.3)
+------------------------------------
+
+https://github.com/JamesNK/Newtonsoft.Json at 0a2e291c0d9c0c7675d445703e51750363a549ef
+
+https://www.newtonsoft.com/json
+
+Copyright © James Newton-King 2008
+
+Licensed under MIT
+
+Available at https://licenses.nuget.org/MIT
+
+
+License notice for ReactiveProperty (v9.7.0)
+------------------------------------
+
+https://github.com/runceel/ReactiveProperty at 6c761305391ca7331e5b48d5d4b358a2e06e9716
+
+Licensed under MIT
+
+Available at https://licenses.nuget.org/MIT
+
+
+License notice for ReactiveProperty.Core (v9.7.0)
+------------------------------------
+
+https://github.com/runceel/ReactiveProperty at 6c761305391ca7331e5b48d5d4b358a2e06e9716
+
+Licensed under MIT
+
+Available at https://licenses.nuget.org/MIT
+
+
+License notice for System.ComponentModel.Annotations (v5.0.0)
+------------------------------------
+
+git://github.com/dotnet/runtime at cf258a14b70ad9069470a108f13765e0e5988f51
+
+https://github.com/dotnet/runtime
+
+Copyright © Microsoft Corporation. All rights reserved.
+
+Licensed under MIT
+
+Available at https://licenses.nuget.org/MIT
+
+
+License notice for System.Reactive (v6.0.1)
+------------------------------------
+
+https://github.com/dotnet/reactive at 1cfc6465d1c9c6144d5b4e6420240f2767c8f85c
+
+Copyright (c) .NET Foundation and Contributors.
+
+Licensed under MIT
+
+Available at https://licenses.nuget.org/MIT
+
+
