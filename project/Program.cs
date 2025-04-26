@@ -2,6 +2,7 @@ using System;
 using System.Windows.Forms;
 
 namespace QuickDirTree;
+using static Results;
 
 class Program
 {
@@ -13,33 +14,31 @@ class Program
 
         Texts.Initialize("lang.json");
         Settings.Initialize("appsettings.json");
+        Application.ApplicationExit += (s, e) => {
+            Texts.Get().Save();
+            Settings.Get().Save();
+        };
 
-        NotifyIcon trayIcon = new NotifyIcon();
+        var trayIcon = new NotifyIcon();
         trayIcon.Icon = SystemIcons.Application;
         trayIcon.Visible = true;
 
-        ContextMenuStrip leftMenu = new ContextMenuStrip();
-        leftMenu.Items.Add("Exit", null, (s, e) => Application.Exit());
+        var leftMenu = new LeftMenu();
+        var rightMenu = new RightMenu();
 
-        ContextMenuStrip rightMenu = new ContextMenuStrip();
-        rightMenu.Items.Add("ディレクトリ変更", null, (s, e) => Dialog);
-        rightMenu.Items.Add("終了", null, (s, e) => Application.Exit());
-
-        trayIcon.ContextMenuStrip = leftMenu;
         trayIcon.MouseUp += (s, e) =>
         {
+            // leftMenu.Hide();
+            // rightMenu.Hide();
             if (e.Button == MouseButtons.Left)
             {
-                // 左クリック → 左用メニューを手動表示
                 leftMenu.Show(Cursor.Position);
             }
             else if (e.Button == MouseButtons.Right)
             {
-                // 右クリック → 右用メニューを手動表示
                 rightMenu.Show(Cursor.Position);
             }
         };
-
 
         Application.Run();
     }

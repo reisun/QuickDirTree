@@ -7,6 +7,11 @@ public enum ResultStatus
     Cancel
 }
 
+public readonly struct Unit
+{
+    public static readonly Unit Value = new Unit();
+}
+
 public static class Results {
     public static Result<T> Ok<T>(T value) => Result<T>.Ok(value);
     public static Result<T> Ng<T>(string? message = null) => Result<T>.Ng(message);
