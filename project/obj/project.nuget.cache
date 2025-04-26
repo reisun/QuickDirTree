@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "EfqdbG6FWew=",
+  "success": true,
+  "projectFilePath": "D:\\workspace\\QuickDirTree\\project\\QuickDirTree.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\RRRRRRR\\.nuget\\packages\\newtonsoft.json\\13.0.3\\newtonsoft.json.13.0.3.nupkg.sha512"
+  ],
+  "logs": []
+}
