@@ -28,7 +28,7 @@ public class LeftMenu
         var dirListList = Settings.Get().TargetDirectries.Value;
         if (!dirListList.Any())
         {
-            MessageBox.Show(Texts.Get().TargetDirectryEmpty);
+            MyMsgBox.ShowWarn(Texts.Get().WarnTargetDirectryEmpty);
             if (!Utils.SelectFolder("").Bind(v => Ok(dirListList = [v])).IsOk)
             {
                 return;
