@@ -1,0 +1,1 @@
+dotnet build project/ -c Release

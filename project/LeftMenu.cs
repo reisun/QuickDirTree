@@ -1,5 +1,6 @@
 ﻿namespace QuickDirTree;
 
+using System.Configuration;
 using System.Diagnostics;
 using static Results;
 
@@ -24,7 +25,7 @@ public class LeftMenu
     public void Show(Point showPonint)
     {
         Hide();
-        string dir = Settings.Get().TargetDirectry;
+        string dir = Settings.Get().TargetDirectry.Value;
         if (string.IsNullOrEmpty(dir))
         {
             MessageBox.Show(Texts.Get().TargetDirectryEmpty);
@@ -41,7 +42,7 @@ public class LeftMenu
                 return;
             }
         }
-        Settings.Get().TargetDirectry = dir;
+        Settings.Get().TargetDirectry.Value = dir;
 
         SetSubMenu(this._menu.Items, dir);
 
@@ -63,27 +64,41 @@ public class LeftMenu
         collection.Clear();
         if (Directory.Exists(parentMenuPath))
         {
-            foreach (var dir in Directory.GetDirectories(parentMenuPath))
+            bool exits = false;
+            foreach (var path in Directory.GetFileSystemEntries(parentMenuPath))
             {
-                var folderName = Path.GetFileName(dir);
+                exits = true;
+                var folderName = Path.GetFileName(path);
                 var subMenu = new ToolStripMenuItem()
                 {
                     Name = folderName,
                     Text = folderName,
                 };
-                subMenu.DropDownOpening += (s, e) => SetSubMenu(subMenu.DropDownItems, dir);
+                if (Directory.Exists(path)) {
+                    // 中身は実際に開くときに調べるが、ディレクトリなので”(空)”でItemを入れておく
+                    subMenu.DropDownItems.Add(Texts.Get().DirectoryEmpty);
+                }
+                subMenu.DropDownOpening += (s, e) => SetSubMenu(subMenu.DropDownItems, path);
+                subMenu.MouseUp += (s, e) =>
+                {
+                    if (File.Exists(path) || Directory.Exists(path))
+                    {
+                        // OSに任せて開く
+                        Process.Start(new ProcessStartInfo
+                        {
+                            FileName = path,
+                            UseShellExecute = true,
+                            Verb = "open"
+                        });
+                    }
+                };
                 collection.Add(subMenu);
             }
-            return;
-        }
-        if (File.Exists(parentMenuPath))
-        {
-            // OSに任せて開く
-            Process.Start(new ProcessStartInfo
+            if (!exits)
             {
-                FileName = parentMenuPath,
-                UseShellExecute = true
-            });
+                collection.Add(Texts.Get().DirectoryEmpty);
+            }
+            return;
         }
     }
 }

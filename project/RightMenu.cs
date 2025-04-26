@@ -1,6 +1,5 @@
 ﻿namespace QuickDirTree;
 
-using System.Diagnostics;
 using static Results;
 
 public class RightMenu
@@ -11,11 +10,11 @@ public class RightMenu
     {
         this._menu = new ContextMenuStrip();
         this._menu.AutoClose = true;
-        this._menu.Items.Add("ディレクトリ変更", null, (s, e) => {
-            Utils.SelectFolder(Settings.Get().TargetDirectry)
-            .Bind(v => Ok(Settings.Get().TargetDirectry = v));
+        this._menu.Items.Add(Texts.Get().ChangeDirectry, null, (s, e) => {
+            Utils.SelectFolder(Settings.Get().TargetDirectry.Value)
+            .Bind(v => Ok(Settings.Get().TargetDirectry.Value = v));
         });
-        this._menu.Items.Add("終了", null, (s, e) => Application.Exit());
+        this._menu.Items.Add(Texts.Get().Exit, null, (s, e) => Application.Exit());
 
         this._dummyForm = new Form();
         this._dummyForm.ShowInTaskbar = false; // タスクバーに出さない

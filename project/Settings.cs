@@ -1,12 +1,42 @@
-﻿using System.IO;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
+using Reactive.Bindings;
+using Reactive.Bindings.Extensions;
 
 namespace QuickDirTree;
 
-public class Settings: BaseResourcesReader<Settings> 
+public class SettingsModel
 {
     public string AppVersion { get; set; }
     public string TargetDirectry { get; set; }
-    public int LaunchCount { get; set; }
+}
+
+public class Settings
+{
+    private readonly SettingsModel _model;
+    public ReactiveProperty<string> AppVersion { get; }
+    public ReactiveProperty<string> TargetDirectry { get; }
+
+    private Settings(SettingsModel model) {
+        this._model = model;
+        this.AppVersion = new ReactiveProperty<string>(this._model.AppVersion);
+        this.AppVersion.Subscribe(v => model.AppVersion = v);
+        this.TargetDirectry = new ReactiveProperty<string>(this._model.TargetDirectry);
+        this.TargetDirectry.Subscribe(v => model.TargetDirectry = v);
+    }
+
+    private static string g_fileName;
+    private static Lazy<Settings> g_instance;
+    public static void Initialize(string fileName)
+    {
+        g_fileName = fileName;
+        g_instance = new Lazy<Settings>(() => {
+            return new Settings(Utils.GetLazy<SettingsModel>(fileName).Value);
+        });
+    }
+    public static Settings Get() => g_instance.Value;
+    public void Save()
+    {
+        string outputJson = JsonConvert.SerializeObject(g_instance.Value._model, Formatting.Indented);
+        File.WriteAllText(g_fileName, outputJson);
+    }
 }

@@ -1,14 +1,18 @@
-using System;
-using System.Windows.Forms;
+using System.Runtime.InteropServices;
 
 namespace QuickDirTree;
-using static Results;
 
 class Program
 {
+    [DllImport("user32.dll")]
+    private static extern bool SetProcessDpiAwarenessContext(IntPtr dpiFlag);
+
     [STAThread]
     static void Main()
     {
+        // 高DPI対応設定
+        SetProcessDpiAwarenessContext((IntPtr)(-4)); // DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
 
@@ -20,16 +24,17 @@ class Program
         };
 
         var trayIcon = new NotifyIcon();
-        trayIcon.Icon = SystemIcons.Application;
-        trayIcon.Visible = true;
-
         var leftMenu = new LeftMenu();
         var rightMenu = new RightMenu();
-
+        
+        trayIcon.Icon = SystemIcons.Application;
+        trayIcon.Visible = true;
+        trayIcon.Text = Settings.Get().TargetDirectry.Value ?? "";
+        Settings.Get().TargetDirectry.Subscribe(v => {
+            trayIcon.Text = v ?? "";
+        });
         trayIcon.MouseUp += (s, e) =>
         {
-            // leftMenu.Hide();
-            // rightMenu.Hide();
             if (e.Button == MouseButtons.Left)
             {
                 leftMenu.Show(Cursor.Position);
