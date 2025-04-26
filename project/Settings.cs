@@ -20,8 +20,8 @@ public class Settings
         this.TargetDirectry.Subscribe(v => model.TargetDirectry = v);
     }
 
-    private static string g_fileName;
-    private static Lazy<Settings> g_instance;
+    private static string g_fileName = null!;
+    private static Lazy<Settings> g_instance = null!;
     public static void Initialize(string fileName)
     {
         g_fileName = fileName;

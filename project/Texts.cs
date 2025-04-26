@@ -12,8 +12,8 @@ public class Texts
     public string Exit { get; set; }= "終了";
 
 
-    private static string g_fileName;
-    private static Lazy<Texts> g_instance;
+    private static string g_fileName = null!;
+    private static Lazy<Texts> g_instance = null!;
     public static void Initialize(string fileName)
     {
         g_fileName = fileName;
