@@ -1,6 +1,6 @@
 ﻿public class DropDownMenuScrollWheelHandler : IMessageFilter
 {
-    private static DropDownMenuScrollWheelHandler Instance;
+    private static DropDownMenuScrollWheelHandler Instance = null!;
     public static void Enable(bool enabled)
     {
         if (enabled)
@@ -16,13 +16,13 @@
             if (Instance != null)
             {
                 Application.RemoveMessageFilter(Instance);
-                Instance = null;
+                Instance = null!;
             }
         }
     }
 
     private IntPtr activeHwnd;
-    private ToolStripDropDown activeMenu;
+    private ToolStripDropDown activeMenu = null!;
     private int wheelDeltaAccumulator = 0;
 
     public bool PreFilterMessage(ref Message m)
@@ -30,7 +30,7 @@
         if (m.Msg == 0x200 && activeHwnd != m.HWnd) // WM_MOUSEMOVE
         {
             activeHwnd = m.HWnd;
-            this.activeMenu = Control.FromHandle(m.HWnd) as ToolStripDropDown;
+            this.activeMenu = (Control.FromHandle(m.HWnd) as ToolStripDropDown)!;
         }
         else if (m.Msg == 0x20A && this.activeMenu != null) // WM_MOUSEWHEEL
         {
@@ -60,7 +60,7 @@
         = (Action<ToolStrip, int>)Delegate.CreateDelegate(typeof(Action<ToolStrip, int>),
             typeof(ToolStrip).GetMethod("ScrollInternal",
                 System.Reflection.BindingFlags.NonPublic
-                | System.Reflection.BindingFlags.Instance));
+                | System.Reflection.BindingFlags.Instance)!);
 
     private void handleDelta(ToolStripDropDown ts, int delta)
     {
