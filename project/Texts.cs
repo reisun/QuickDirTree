@@ -7,6 +7,7 @@ public class Texts
     public string TargetDirectryEmpty { get; set; } = "フォルダを設定してください。";
     public string TargetDirectryNotFound { get; set; }= "フォルダが見つかりませんでした。";
     public string DirectoryEmpty { get; set; }= "(空)";
+    public string DirectoryOpenFailed { get; set; }= "(フォルダを開けませんでした)";
     public string ChangeDirectry { get; set; }= "フォルダ変更";
     public string Exit { get; set; }= "終了";
 

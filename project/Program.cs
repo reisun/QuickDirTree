@@ -15,6 +15,10 @@ class Program
 
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
+        // 実験的（標準ダークテーマ対応）
+        Application.SetColorMode(SystemColorMode.System);
+        // ドロップダウンのホイールスクロールを可能にする
+        DropDownMenuScrollWheelHandler.Enable(true);
 
         Texts.Initialize("lang.json");
         Settings.Initialize("appsettings.json");
@@ -27,7 +31,7 @@ class Program
         var leftMenu = new LeftMenu();
         var rightMenu = new RightMenu();
         
-        trayIcon.Icon = SystemIcons.Application;
+        trayIcon.Icon = SystemIconManager.GetIconFromPath(Path.GetTempPath());
         trayIcon.Visible = true;
         trayIcon.Text = Settings.Get().TargetDirectry.Value ?? "";
         Settings.Get().TargetDirectry.Subscribe(v => {

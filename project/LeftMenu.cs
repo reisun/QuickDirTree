@@ -44,7 +44,7 @@ public class LeftMenu
         }
         Settings.Get().TargetDirectry.Value = dir;
 
-        SetSubMenu(this._menu.Items, dir);
+        UpdateSubMenuItems(this._menu.Items, dir);
 
         this._dummyForm.Show();
         this._dummyForm.Activate();
@@ -59,46 +59,60 @@ public class LeftMenu
         }
     }
 
-    public static void SetSubMenu(ToolStripItemCollection collection, string parentMenuPath)
+    public static void UpdateSubMenuItems(ToolStripItemCollection collection, string parentMenuPath)
     {
         collection.Clear();
-        if (Directory.Exists(parentMenuPath))
+        if (!Directory.Exists(parentMenuPath))
         {
-            bool exits = false;
-            foreach (var path in Directory.GetFileSystemEntries(parentMenuPath))
-            {
-                exits = true;
-                var folderName = Path.GetFileName(path);
-                var subMenu = new ToolStripMenuItem()
-                {
-                    Name = folderName,
-                    Text = folderName,
-                };
-                if (Directory.Exists(path)) {
-                    // 中身は実際に開くときに調べるが、ディレクトリなので”(空)”でItemを入れておく
-                    subMenu.DropDownItems.Add(Texts.Get().DirectoryEmpty);
-                }
-                subMenu.DropDownOpening += (s, e) => SetSubMenu(subMenu.DropDownItems, path);
-                subMenu.MouseUp += (s, e) =>
-                {
-                    if (File.Exists(path) || Directory.Exists(path))
-                    {
-                        // OSに任せて開く
-                        Process.Start(new ProcessStartInfo
-                        {
-                            FileName = path,
-                            UseShellExecute = true,
-                            Verb = "open"
-                        });
-                    }
-                };
-                collection.Add(subMenu);
-            }
-            if (!exits)
-            {
-                collection.Add(Texts.Get().DirectoryEmpty);
-            }
+            // フォルダでなければサブメニューは作れない
             return;
         }
+
+        try
+        {
+            var pathList = Directory.GetFileSystemEntries(parentMenuPath);
+            if (!pathList.Any())
+            {
+                collection.Add(Texts.Get().DirectoryEmpty);
+                return;
+            }
+            collection.AddRange(pathList.Select(CreateSubMenu).ToArray());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.ToString());
+            collection.Add(Texts.Get().DirectoryOpenFailed);
+        }
+    }
+
+    private static ToolStripMenuItem CreateSubMenu(string path)
+    {
+        var subMenu = new ToolStripMenuItem()
+        {
+            Text = Path.GetFileName(path),
+            Image = SystemIconManager.GetIconFromPath(path)?.ToBitmap()
+        };
+        if (Directory.Exists(path))
+        {
+            // 中身は実際に開くときに調べるが、ディレクトリなので”(空)”でItemを入れておく
+            subMenu.DropDownItems.Add(Texts.Get().DirectoryEmpty);
+        }
+        subMenu.DropDownOpening += (s, e) => UpdateSubMenuItems(subMenu.DropDownItems, path);
+        subMenu.MouseUp += (s, e) =>
+        {
+            if (e.Button != MouseButtons.Left)
+                return;
+            // 開く前に念のためチェック
+            if (!File.Exists(path) && !Directory.Exists(path))
+                return;
+            // OSに任せる
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = path,
+                UseShellExecute = true,
+                //Verb = "open"
+            });
+        };
+        return subMenu;
     }
 }
