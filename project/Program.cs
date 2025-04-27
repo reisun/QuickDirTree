@@ -13,6 +13,7 @@ class Program
         // 高DPI対応設定
         SetProcessDpiAwarenessContext((IntPtr)(-4)); // DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
 
+        Console.OutputEncoding = System.Text.Encoding.UTF8;
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
         // 実験的（標準ダークテーマ対応）

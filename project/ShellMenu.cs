@@ -1,5 +1,6 @@
 ﻿namespace QuickDirTree;
 
+using System.Collections.Generic;
 using Reactive.Bindings.Extensions;
 using static Results;
 
@@ -31,7 +32,7 @@ public class ShellMenu
     {
         Hide();
 
-        var itemList = GetVerbList(path);
+        var itemList = GetVerbListVer2(path);
         this._menu.Items.Clear();
         this._menu.Items.AddRange(itemList.ToArray());
 
@@ -62,18 +63,54 @@ public class ShellMenu
                 itemList.Add(new ToolStripMenuItem());
                 itemList.Last().Name = verb.Name;
                 itemList.Last().Text = verb.Name;
-                itemList.Last().Click += (s, e) => {
+                itemList.Last().Click += (s, e) =>
+                {
                     try
                     {
                         verb.DoIt();
                     }
-                    catch (Exception ex) {
+                    catch (Exception ex)
+                    {
                         MyMsgBox.ShowWarn(Texts.Get().WarnNotSupport);
                     }
                 };
             }
         }
         return itemList;
+    }
+
+    public static List<ToolStripItem> GetVerbListVer2(string path)
+    {
+        var menuList = ShellMenuItem.ExtractMenu(path);
+        return menuList.Select(item => Dump(0, item, path)).ToList();
+    }
+
+    static ToolStripItem Dump(int indent, ShellMenuItem item, string path)
+    {
+        if (item.IsSeparator)
+        {
+            return new ToolStripSeparator();
+        }
+        var childItem = new ToolStripMenuItem()
+        {
+            Text = item.Text,
+        };
+        childItem.Click += (s, e) =>
+        {
+            try
+            {
+                ShellMenuItem.InvokeMenuItem(path, (searchItem) => item.Id == searchItem.Id);
+            }
+            catch (Exception ex)
+            {
+                MyMsgBox.ShowWarn(Texts.Get().WarnNotSupport);
+            }
+        };
+        foreach (var itr in item.Items.Select(child => Dump(indent + 1, child, path)))
+        {
+            childItem.DropDown.Items.Add(itr);
+        }
+        return childItem;
     }
 
 }
