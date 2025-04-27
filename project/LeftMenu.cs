@@ -162,13 +162,20 @@ public class LeftMenu
                 // 開く前に念のためチェック
                 if (!File.Exists(path) && !Directory.Exists(path))
                     return;
-                // OSに任せる
-                Process.Start(new ProcessStartInfo
+                try
                 {
-                    FileName = path,
-                    UseShellExecute = true,
-                    //Verb = "open"
-                });
+                    // OSに任せる
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = path,
+                        UseShellExecute = true,
+                        //Verb = "open"
+                    });
+                }
+                catch (Exception ex)
+                {
+                    ; // ユーザーが起動をキャンセルした時に例外に入る場合がある
+                }
             }
             lastClickTime = now;
         };
