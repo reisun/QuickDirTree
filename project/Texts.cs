@@ -7,6 +7,7 @@ public class Texts
     public string Wirnning { get; set; } = "警告";
     public string WarnTargetDirectryEmpty { get; set; } = "フォルダを設定してください。";
     public string WarnTargetDirectryNotFound { get; set; } = "フォルダが見つかりませんでした。";
+    public string WarnNotSupport { get; set; } = "[QuickDirTree]サポートされていない操作です。";
     public string Confirm { get; set; } = "確認";
     public string ConfirmDeleteTargetDirectry { get; set; } = "登録フォルダから削除しますか？";
     public string DirectoryEmpty { get; set; } = "(空)";

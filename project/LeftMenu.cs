@@ -1,17 +1,46 @@
-﻿namespace QuickDirTree;
-
-using System.Configuration;
+﻿using System.Configuration;
 using System.Diagnostics;
-using static Results;
+using static QuickDirTree.Results;
+
+namespace QuickDirTree;
 
 public class LeftMenu
 {
-    private Form _dummyForm;
-    private ContextMenuStrip _menu;
+    public Form _dummyForm;
+    public ContextMenuStrip _menu;
+
+    private bool _InSuspend = false;
+    public bool InSuspend
+    {
+        get => this._InSuspend;
+        set
+        {
+            this._menu.AutoClose = !value;
+            this._InSuspend = value;
+        }
+    }
+
+    public event EventHandler<ContextMenuShowwingEventArgs> ContextMenuShowwing;
+    public class ContextMenuShowwingEventArgs : EventArgs
+    {
+        public string Path { get; set; }
+        public ContextMenuShowwingEventArgs(string path)
+        {
+            this.Path = path;
+        }
+    }
+
     public LeftMenu()
     {
         this._menu = new ContextMenuStrip();
         this._menu.AutoClose = true;
+        this._menu.Closing += (s, e) =>
+        {
+            if (e.CloseReason == ToolStripDropDownCloseReason.ItemClicked)
+            {
+                e.Cancel = true;
+            }
+        };
 
         this._dummyForm = new Form();
         this._dummyForm.ShowInTaskbar = false; // タスクバーに出さない
@@ -25,7 +54,7 @@ public class LeftMenu
     public void Show(Point showPonint)
     {
         Hide();
-        var dirListList = Settings.Get().TargetDirectries.Value;
+        var dirListList = Settings.Get().TargetDirectries.Value!;
         if (!dirListList.Any())
         {
             MyMsgBox.ShowWarn(Texts.Get().WarnTargetDirectryEmpty);
@@ -43,19 +72,18 @@ public class LeftMenu
         }
         else if (!dirListList.Skip(1).Any())
         {   // 1ヶ
-            UpdateSubMenuItems(this._menu.Items, dirListList.First());
+            UpdateSubMenuItems(this, this._menu.Items, dirListList.First());
         }
         else
         {   // N
-            this._menu.Items.AddRange(dirListList.Select(CreateSubMenu).ToArray());
+            this._menu.Items.AddRange(dirListList.Select(v => CreateSubMenu(this, v)).ToArray());
         }
-
-        this._dummyForm.Show();
-        this._dummyForm.Activate();
 
         // カーソルの横中心に表示
         showPonint.Offset(-this._menu.Width / 2, 0);
 
+        this._dummyForm.Show();
+        this._dummyForm.Activate();
         this._menu.Show(showPonint);
     }
     public void Hide()
@@ -66,7 +94,7 @@ public class LeftMenu
         }
     }
 
-    public static void UpdateSubMenuItems(ToolStripItemCollection collection, string parentMenuPath)
+    public static void UpdateSubMenuItems(LeftMenu parent, ToolStripItemCollection collection, string parentMenuPath)
     {
         collection.Clear();
         if (!Directory.Exists(parentMenuPath))
@@ -83,7 +111,7 @@ public class LeftMenu
                 collection.Add(Texts.Get().DirectoryEmpty);
                 return;
             }
-            collection.AddRange(pathList.Select(CreateSubMenu).ToArray());
+            collection.AddRange(pathList.Select(v => CreateSubMenu(parent, v)).ToArray());
         }
         catch (Exception ex)
         {
@@ -92,34 +120,69 @@ public class LeftMenu
         }
     }
 
-    private static ToolStripMenuItem CreateSubMenu(string path)
+    private static ToolStripMenuItem CreateSubMenu(LeftMenu parent, string path)
     {
-        var subMenu = new ToolStripMenuItem()
+        var subMenuItem = new ToolStripMenuItem()
         {
             Text = Path.GetFileName(path),
-            Image = SystemIconManager.GetIconFromPath(path)?.ToBitmap()
+            Image = SystemIconManager.GetIconFromPath(path)?.ToBitmap(),
+            Tag = path,
         };
         if (Directory.Exists(path))
         {
             // 中身は実際に開くときに調べるが、ディレクトリなので”(空)”でItemを入れておく
-            subMenu.DropDownItems.Add(Texts.Get().DirectoryEmpty);
+            subMenuItem.DropDownItems.Add(Texts.Get().DirectoryEmpty);
         }
-        subMenu.DropDownOpening += (s, e) => UpdateSubMenuItems(subMenu.DropDownItems, path);
-        subMenu.MouseUp += (s, e) =>
+        subMenuItem.DropDownOpening += (s, e) =>
+        {
+            if (parent.InSuspend)
+            {
+                subMenuItem.DropDown.Close();
+            }
+        };
+        subMenuItem.DropDownOpening += (s, e) => UpdateSubMenuItems(parent, subMenuItem.DropDownItems, path);
+        subMenuItem.DropDown.Closing += (s, e) =>
+        {
+            if (e.CloseReason == ToolStripDropDownCloseReason.ItemClicked)
+            {
+                e.Cancel = true;
+            }
+        };
+
+        DateTime lastClickTime = DateTime.Now;
+        int DoubleClickThreshold = 300; // ダブルクリックと見なす間隔（ミリ秒）
+        subMenuItem.MouseUp += (s, e) =>
         {
             if (e.Button != MouseButtons.Left)
                 return;
+
+            DateTime now = DateTime.Now;
+            if ((now - lastClickTime).TotalMilliseconds < DoubleClickThreshold)
+            {
+                // 開く前に念のためチェック
+                if (!File.Exists(path) && !Directory.Exists(path))
+                    return;
+                // OSに任せる
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = path,
+                    UseShellExecute = true,
+                    //Verb = "open"
+                });
+            }
+            lastClickTime = now;
+        };
+        subMenuItem.MouseUp += (s, e) =>
+        {
+            if (e.Button != MouseButtons.Right)
+                return;
+
             // 開く前に念のためチェック
             if (!File.Exists(path) && !Directory.Exists(path))
                 return;
-            // OSに任せる
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = path,
-                UseShellExecute = true,
-                //Verb = "open"
-            });
+            parent.ContextMenuShowwing(subMenuItem, new ContextMenuShowwingEventArgs(path));
         };
-        return subMenu;
+
+        return subMenuItem;
     }
 }

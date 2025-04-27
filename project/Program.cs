@@ -30,7 +30,8 @@ class Program
         var trayIcon = new NotifyIcon();
         var leftMenu = new LeftMenu();
         var rightMenu = new RightMenu();
-        
+        var shellMenu = new ShellMenu();
+
         trayIcon.Visible = true;
         trayIcon.Text = "QuickDirTree";
         trayIcon.Icon = Utils.GetTrayIcon(Settings.Get().TargetDirectries.Value);
@@ -47,6 +48,14 @@ class Program
             {
                 rightMenu.Show(Cursor.Position);
             }
+        };
+        leftMenu.ContextMenuShowwing += (s, e) => {
+            leftMenu.InSuspend = true;
+            shellMenu._menu.Closed += (s, e) => {
+                leftMenu.InSuspend = false;
+            };
+            shellMenu._dummyForm = leftMenu._dummyForm;
+            shellMenu.Show(e.Path, Cursor.Position);
         };
 
         Application.Run();
