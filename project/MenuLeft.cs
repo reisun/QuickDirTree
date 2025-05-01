@@ -4,19 +4,33 @@ using static QuickDirTree.Results;
 
 namespace QuickDirTree;
 
-public class LeftMenu
+public class MenuLeft
 {
-    public Form _dummyForm;
-    public ContextMenuStrip _menu;
+    public SuspendableContextMenuStrip _menu;
 
-    private bool _InSuspend = false;
     public bool InSuspend
     {
-        get => this._InSuspend;
+        get => this._menu.InSuspend;
         set
         {
             this._menu.AutoClose = !value;
-            this._InSuspend = value;
+            this._menu.InSuspend = value;
+            ProcessMenuItems(this._menu.Items, value);
+        }
+    }
+
+    void ProcessMenuItems(ToolStripItemCollection items, bool inSuspend)
+    {
+        foreach (ToolStripItem item in items)
+        {
+            // サブメニューがある場合は再帰的に処理
+            if (item is ToolStripMenuItem menuItem 
+                && menuItem.HasDropDownItems 
+                && menuItem.DropDown is SuspendableToolStripDropDownMenu suspendableToolStripDropDown)
+            {
+                suspendableToolStripDropDown.InSuspend = inSuspend;
+                ProcessMenuItems(menuItem.DropDownItems, inSuspend);
+            }
         }
     }
 
@@ -30,9 +44,9 @@ public class LeftMenu
         }
     }
 
-    public LeftMenu()
+    public MenuLeft(Control parent)
     {
-        this._menu = new ContextMenuStrip();
+        this._menu = new SuspendableContextMenuStrip();
         this._menu.AutoClose = true;
         this._menu.Closing += (s, e) =>
         {
@@ -40,15 +54,13 @@ public class LeftMenu
             {
                 e.Cancel = true;
             }
+            //if (this.InSuspend && e.CloseReason == ToolStripDropDownCloseReason.AppFocusChange)
+            //{
+            //    e.Cancel = true;
+            //}
         };
 
-        this._dummyForm = new Form();
-        this._dummyForm.ShowInTaskbar = false; // タスクバーに出さない
-        this._dummyForm.FormBorderStyle = FormBorderStyle.None; // 枠なし
-        this._dummyForm.StartPosition = FormStartPosition.Manual;
-        this._dummyForm.Size = new Size(0, 0); // サイズゼロ
-        this._dummyForm.Location = new Point(-2000, -2000); // 画面外に飛ばす
-        this._dummyForm.ContextMenuStrip = this._menu;
+        parent.ContextMenuStrip = this._menu;
     }
 
     public void Show(Point showPonint)
@@ -58,7 +70,7 @@ public class LeftMenu
         if (!dirListList.Any())
         {
             MyMsgBox.ShowWarn(Texts.Get().WarnTargetDirectryEmpty);
-            if (!Utils.SelectFolder("").Bind(v => Ok(dirListList = [v])).IsOk)
+            if (!Utils.SelectFolder("").ThenIfOk(v => Ok(dirListList = [v])).IsOk)
             {
                 return;
             }
@@ -82,19 +94,14 @@ public class LeftMenu
         // カーソルの横中心に表示
         showPonint.Offset(-this._menu.Width / 2, 0);
 
-        this._dummyForm.Show();
-        this._dummyForm.Activate();
         this._menu.Show(showPonint);
     }
     public void Hide()
     {
-        if (this._menu != null)
-        {
-            this._menu.Hide();
-        }
+        this._menu.Hide();
     }
 
-    public static void UpdateSubMenuItems(LeftMenu parent, ToolStripItemCollection collection, string parentMenuPath)
+    public static void UpdateSubMenuItems(MenuLeft parent, ToolStripItemCollection collection, string parentMenuPath)
     {
         collection.Clear();
         if (!Directory.Exists(parentMenuPath))
@@ -120,35 +127,53 @@ public class LeftMenu
         }
     }
 
-    private static ToolStripMenuItem CreateSubMenu(LeftMenu parent, string path)
+    private static ToolStripMenuItem CreateSubMenu(MenuLeft parent, string path)
     {
         var subMenuItem = new ToolStripMenuItem()
         {
             Text = Path.GetFileName(path),
             Image = SystemIconManager.GetIconFromPath(path)?.ToBitmap(),
             Tag = path,
+            DropDown = new SuspendableToolStripDropDownMenu(),
         };
         if (Directory.Exists(path))
         {
             // 中身は実際に開くときに調べるが、ディレクトリなので”(空)”でItemを入れておく
             subMenuItem.DropDownItems.Add(Texts.Get().DirectoryEmpty);
         }
-        subMenuItem.DropDownOpening += (s, e) =>
-        {
-            if (parent.InSuspend)
-            {
-                subMenuItem.DropDown.Close();
-            }
+        //subMenuItem.DropDown.Opening += (s, e) =>
+        //{
+        //    if (parent.InSuspend)
+        //    {
+        //        e.Cancel = true;
+        //    }
+        //};
+        subMenuItem.DropDown.Opening += (s, e) => {
+            UpdateSubMenuItems(parent, subMenuItem.DropDown.Items, path);
         };
-        subMenuItem.DropDownOpening += (s, e) => UpdateSubMenuItems(parent, subMenuItem.DropDownItems, path);
         subMenuItem.DropDown.Closing += (s, e) =>
         {
             if (e.CloseReason == ToolStripDropDownCloseReason.ItemClicked)
             {
                 e.Cancel = true;
             }
+            if (parent.InSuspend && e.CloseReason == ToolStripDropDownCloseReason.AppFocusChange)
+            {
+                e.Cancel = true;
+            }
         };
-
+        // 左シングルクリック
+        subMenuItem.MouseUp += (s, e) =>
+        {
+            if (e.Button != MouseButtons.Left)
+                return;
+            // ファイルのみ可能
+            if (Directory.Exists(path) || !File.Exists(path))
+                return;
+            parent.Hide();
+            FileExec(path);
+        };
+        // 左ダブルクリック
         DateTime lastClickTime = DateTime.Now;
         int DoubleClickThreshold = 300; // ダブルクリックと見なす間隔（ミリ秒）
         subMenuItem.MouseUp += (s, e) =>
@@ -162,23 +187,11 @@ public class LeftMenu
                 // 開く前に念のためチェック
                 if (!File.Exists(path) && !Directory.Exists(path))
                     return;
-                try
-                {
-                    // OSに任せる
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = path,
-                        UseShellExecute = true,
-                        //Verb = "open"
-                    });
-                }
-                catch (Exception ex)
-                {
-                    ; // ユーザーが起動をキャンセルした時に例外に入る場合がある
-                }
+                FileExec(path);
             }
             lastClickTime = now;
         };
+        // 右クリック
         subMenuItem.MouseUp += (s, e) =>
         {
             if (e.Button != MouseButtons.Right)
@@ -191,5 +204,23 @@ public class LeftMenu
         };
 
         return subMenuItem;
+    }
+
+    public static void FileExec(string path)
+    {
+        try
+        {
+            // OSに任せる
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = path,
+                UseShellExecute = true,
+                //Verb = "open"
+            });
+        }
+        catch (Exception ex)
+        {
+            ; // ユーザーが起動をキャンセルした時に例外に入る場合がある
+        }
     }
 }

@@ -39,7 +39,7 @@ public class Result<T>
     public bool IsNg => Status == ResultStatus.Ng;
     public bool IsCancel => Status == ResultStatus.Cancel;
 
-    public Result<U> Bind<U>(Func<T, Result<U>> binder)
+    public Result<U> ThenIfOk<U>(Func<T, Result<U>> binder)
     {
         if (IsOk && Value != null)
         {
@@ -54,7 +54,8 @@ public class Result<T>
             return Result<U>.Ng(Message);
         }
     }
-    public Result<U> Map<U>(Func<T, U> mapper)
+
+    public Result<U> ThenIfOk<U>(Func<T, U> mapper)
     {
         if (IsOk && Value != null)
         {
@@ -69,4 +70,5 @@ public class Result<T>
             return Result<U>.Ng(Message);
         }
     }
+
 }

@@ -8,6 +8,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <NoWarn>$(NoWarn);WFO5001</NoWarn>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="SuspendableToolStripDropDownMenu.cs" />
+  </ItemGroup>
   
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />

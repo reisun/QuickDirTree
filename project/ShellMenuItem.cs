@@ -1,12 +1,15 @@
 ﻿
 
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace QuickDirTree;
 
-public sealed class ShellMenuItem
+public sealed class ShellMenuItem: IDisposable
 {
     private List<ShellMenuItem> _items = new List<ShellMenuItem>();
 
@@ -14,49 +17,44 @@ public sealed class ShellMenuItem
     {
     }
 
+    public IReadOnlyList<ShellMenuItem> Items => _items;
+
+    public void Dispose()
+    {
+        if (OwnerMenu != IntPtr.Zero)
+            DestroyMenu(OwnerMenu);
+        if (FolderPidl != 0)
+            Marshal.FreeCoTaskMem(FolderPidl);
+        if (ItemPidl != 0)
+            Marshal.FreeCoTaskMem(ItemPidl);
+    }
+
+    public IntPtr OwnerMenu;
+    public nint FolderPidl;
+    public nint ItemPidl;
+
+    public ShellMenuItem? Parent { get; set; }
+
     public uint Id { get; private set; }
     public string Text { get; private set; }
     public string Verb { get; private set; }
     public MFS State { get; private set; }
     public MFT Type { get; private set; }
+    public string path { get; private set; }
+    private IContextMenu2 cm { get; set; }
+    private nint hSubMenu { get; set; }
+
     public bool IsSeparator => Type.HasFlag(MFT.MFT_SEPARATOR);
-    public IReadOnlyList<ShellMenuItem> Items => _items;
+    public bool HasUnderMenu => this.hSubMenu != IntPtr.Zero;
 
-    public override string ToString() => IsSeparator ? "-" : Text;
-
-    public static IReadOnlyList<ShellMenuItem> ExtractMenu(string path)
+    public static ShellMenuItem ExtractMenu(string path)
     {
         if (path == null)
             throw new ArgumentNullException(nameof(path));
 
-        var list = new List<ShellMenuItem>();
-        ExtractMenu(path, (parent, item) =>
-        {
-            if (parent == null)
-            {
-                list.Add(item);
-            }
-            else
-            {
-                parent._items.Add(item);
-            }
-        });
-        return list;
-    }
-
-    public static void ExtractMenu(string path, Action<ShellMenuItem, ShellMenuItem> action)
-    {
         if (path == null)
             throw new ArgumentNullException(nameof(path));
 
-        if (action == null)
-            throw new ArgumentNullException(nameof(action));
-
-        ExtractMenu(path, (parent, item, cm) => action(parent, item));
-    }
-
-    private static void ExtractMenu(string path, Action<ShellMenuItem, ShellMenuItem, IContextMenu2> action)
-    {
         int hr = SHCreateItemFromParsingName(path, IntPtr.Zero, typeof(IShellItem).GUID, out var item);
         if (hr < 0)
             throw new Win32Exception(hr);
@@ -71,57 +69,42 @@ public sealed class ShellMenuItem
         if (hr < 0)
             throw new Win32Exception(hr);
 
-        var menu = CreateMenu();
-        try
-        {
-            var cm = (IContextMenu2)obj;
-            hr = cm.QueryContextMenu(menu, 0, 0, 0x7FFF, CMF.CMF_NORMAL);
-            if (hr < 0)
-                throw new Win32Exception(hr);
+        var list = new List<ShellMenuItem>();
 
-            ExtractMenu(path, cm, menu, null, action);
-        }
-        finally
-        {
-            DestroyMenu(menu);
-            Marshal.FreeCoTaskMem(folderPidl);
-            Marshal.FreeCoTaskMem(itemPidl);
-        }
+        var shellItem = new ShellMenuItem();
+        // --- Disposeで解放される
+        shellItem.OwnerMenu = CreateMenu();
+        shellItem.FolderPidl = folderPidl;
+        shellItem.ItemPidl = itemPidl;
+        // ---
+
+        var cm = (IContextMenu2)obj;
+        hr = cm.QueryContextMenu(shellItem.OwnerMenu, 0, 0, 0x7FFF, CMF.CMF_NORMAL);
+        if (hr < 0)
+            throw new Win32Exception(hr);
+
+        ExtractMenu(path, cm, shellItem.OwnerMenu, shellItem);
+
+        return shellItem;
     }
 
-    public static void InvokeMenuItem(string path, Func<ShellMenuItem, bool> predicate) => InvokeMenuItem(path, IntPtr.Zero, predicate);
-    public static void InvokeMenuItem(string path, IntPtr hwnd, Func<ShellMenuItem, bool> predicate)
+    private static void ExtractMenu(
+        string path,
+        IContextMenu2 cm,
+        IntPtr menuHandle,
+        ShellMenuItem parent)
     {
-        if (path == null)
-            throw new ArgumentNullException(nameof(path));
-
-        if (predicate == null)
-            throw new ArgumentNullException(nameof(predicate));
-
-        ExtractMenu(path, (parent, item, cm) =>
+        if (menuHandle == IntPtr.Zero)
         {
-            if (predicate(item))
-            {
-                var info = new CMINVOKECOMMANDINFOEX();
-                info.cbSize = Marshal.SizeOf(info);
-                info.hwnd = hwnd;
-                info.lpVerb = new IntPtr(item.Id);
-                int hr = cm.InvokeCommand(ref info);
-                if (hr < 0)
-                    throw new Win32Exception(hr);
-            }
-        });
-    }
+            return;
+        }
 
-    private static void ExtractMenu(string path, IContextMenu2 cm, IntPtr menuHandle, ShellMenuItem parent,
-        Action<ShellMenuItem, ShellMenuItem, IContextMenu2> action)
-    {
         int count = GetMenuItemCount(menuHandle);
         for (int i = 0; i < count; i++)
         {
             var mii = new MENUITEMINFO();
             mii.cbSize = Marshal.SizeOf(typeof(MENUITEMINFO));
-            mii.fMask = MIIM.MIIM_BITMAP | MIIM.MIIM_FTYPE | MIIM.MIIM_ID | MIIM.MIIM_STATE | MIIM.MIIM_STRING | MIIM.MIIM_SUBMENU | MIIM.MIIM_DATA;
+            mii.fMask = MIIM.MIIM_FTYPE | MIIM.MIIM_ID | MIIM.MIIM_STATE | MIIM.MIIM_STRING | MIIM.MIIM_SUBMENU | MIIM.MIIM_DATA;
             if (!GetMenuItemInfo(menuHandle, i, true, ref mii))
                 throw new Win32Exception(Marshal.GetLastWin32Error());
 
@@ -138,25 +121,30 @@ public sealed class ShellMenuItem
             item.Id = mii.wID;
             item.Type = mii.fType;
             item.State = mii.fState;
+            item.path = path;
+            item.hSubMenu = mii.hSubMenu;
+            item.cm = cm;
 
-            if (!item.IsSeparator)
-            {
-                var sb = new StringBuilder(256);
-                cm.GetCommandStringW(new IntPtr(item.Id), GCS_VERBICONW, IntPtr.Zero, sb, 256);
-
-                if (!string.IsNullOrWhiteSpace(sb.ToString()))
-                {
-                    item.Verb = sb.ToString();
-                }
-                
-                if (mii.hSubMenu != IntPtr.Zero)
-                {
-                    ExtractMenu(path, cm, mii.hSubMenu, item, action);
-                }
-            }
-            action(parent, item, cm);
-
+            parent._items.Add(item);
         }
+    }
+ 
+    public IReadOnlyList<ShellMenuItem> LoadUnderMenuList()
+    {
+        this._items.Clear();
+        ExtractMenu(this.path, this.cm, this.hSubMenu, this);
+        return this._items;
+    }
+
+    public void InvokeCommand()
+    {
+        var info = new CMINVOKECOMMANDINFOEX();
+        info.cbSize = Marshal.SizeOf(info);
+        info.hwnd = IntPtr.Zero;
+        info.lpVerb = new IntPtr(this.Id);
+        int hr = this.cm.InvokeCommand(ref info);
+        if (hr < 0)
+            throw new Win32Exception(hr);
     }
 
     private const int GCS_VERBA = 0x00000000;
@@ -280,6 +268,7 @@ public sealed class ShellMenuItem
     {
         // we don't need anything from this, all is in IContextMenu2
     }
+
 
     [Guid("000214f4-0000-0000-c000-000000000046"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     private interface IContextMenu2

@@ -1,4 +1,19 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <ItemGroup />
+  <ItemGroup>
+    <Compile Update="SuspendableToolStripDropDownMenu.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="SuspendableContextMenuStrip.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="DummyForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="SuspendableToolStripDropDownMenu.cs">
+      <SubType>Component</SubType>
+    </None>
+  </ItemGroup>
 </Project>

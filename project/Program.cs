@@ -23,42 +23,12 @@ class Program
 
         Texts.Initialize("lang.json");
         Settings.Initialize("appsettings.json");
-        Application.ApplicationExit += (s, e) => {
+        Application.ApplicationExit += (s, e) =>
+        {
             Texts.Get().Save();
             Settings.Get().Save();
         };
 
-        var trayIcon = new NotifyIcon();
-        var leftMenu = new LeftMenu();
-        var rightMenu = new RightMenu();
-        var shellMenu = new ShellMenu();
-
-        trayIcon.Visible = true;
-        trayIcon.Text = "QuickDirTree";
-        trayIcon.Icon = Utils.GetTrayIcon(Settings.Get().TargetDirectries.Value);
-        Settings.Get().TargetDirectries.Subscribe(vlist => {
-            trayIcon.Icon = Utils.GetTrayIcon(Settings.Get().TargetDirectries.Value);
-        });
-        trayIcon.MouseUp += (s, e) =>
-        {
-            if (e.Button == MouseButtons.Left)
-            {
-                leftMenu.Show(Cursor.Position);
-            }
-            else if (e.Button == MouseButtons.Right)
-            {
-                rightMenu.Show(Cursor.Position);
-            }
-        };
-        leftMenu.ContextMenuShowwing += (s, e) => {
-            leftMenu.InSuspend = true;
-            shellMenu._menu.Closed += (s, e) => {
-                leftMenu.InSuspend = false;
-            };
-            shellMenu._dummyForm = leftMenu._dummyForm;
-            shellMenu.Show(e.Path, Cursor.Position);
-        };
-
-        Application.Run();
+        Application.Run(new DummyForm());
     }
 }
