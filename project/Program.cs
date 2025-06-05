@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace QuickDirTree;
@@ -29,6 +30,42 @@ class Program
             Settings.Get().Save();
         };
 
-        Application.Run(new DummyForm());
+        var hideForm = new HideForm();
+        var trayIcon = new NotifyIcon();
+        trayIcon.Visible = true;
+        trayIcon.Text = "QuickDirTree";
+        trayIcon.Icon = Utils.GetTrayIcon(Settings.Get().TargetDirectries.Value);
+
+        var leftMenu = new FolderMenu();
+        var rightMenu = new MenuRight(hideForm);
+        var shellMenu = new ShellMenu(hideForm);
+        // イベント
+        Settings.Get().TargetDirectries.Subscribe(vlist =>
+        {
+            trayIcon.Icon = Utils.GetTrayIcon(Settings.Get().TargetDirectries.Value);
+        });
+        trayIcon.MouseUp += (s, e) =>
+        {
+            hideForm.Show();
+            hideForm.Activate();
+
+            if (e.Button == MouseButtons.Left)
+            {
+                leftMenu.Show(hideForm, Cursor.Position);
+            }
+            else if (e.Button == MouseButtons.Right)
+            {
+                rightMenu.Show(Cursor.Position);
+            }
+        };
+
+        leftMenu.ContextMenuShowwing += (s, e) =>
+        {
+            Debug.WriteLine($"Left menu showing: {e.Path}");
+            shellMenu.Show(e.Path, Cursor.Position);
+            leftMenu.SetAutoClose(true);
+        };
+
+        Application.Run();
     }
 }

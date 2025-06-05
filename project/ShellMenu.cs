@@ -4,11 +4,11 @@ using System.Collections.Generic;
 using Reactive.Bindings.Extensions;
 using static Results;
 
-public class MenuShell
+public class ShellMenu
 {
     public ContextMenuStrip _menu;
 
-    public MenuShell(Control parent)
+    public ShellMenu(Control parent)
     {
         this._menu = new ContextMenuStrip();
         this._menu.AutoClose = true;
