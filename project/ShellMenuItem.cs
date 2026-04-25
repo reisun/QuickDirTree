@@ -148,24 +148,49 @@ public sealed class ShellMenuItem: IDisposable
 
         try
         {
-            using var src = Bitmap.FromHbitmap(BitmapHandle);
-            if (Image.GetPixelFormatSize(src.PixelFormat) < 32)
-                return new Bitmap(src);
+            var bitmapObj = new BITMAP();
+            int size = GetObject(BitmapHandle, Marshal.SizeOf(typeof(BITMAP)), ref bitmapObj);
+            if (size == 0 || bitmapObj.bmWidth <= 0 || bitmapObj.bmHeight <= 0)
+                return null;
 
-            var bmp = new Bitmap(src.Width, src.Height, PixelFormat.Format32bppArgb);
-            var srcData = src.LockBits(new Rectangle(0, 0, src.Width, src.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
-            var dstData = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
-            var bytes = new byte[srcData.Stride * srcData.Height];
-            Marshal.Copy(srcData.Scan0, bytes, 0, bytes.Length);
-            Marshal.Copy(bytes, 0, dstData.Scan0, bytes.Length);
-            src.UnlockBits(srcData);
-            bmp.UnlockBits(dstData);
-            return bmp;
+            if (bitmapObj.bmBitsPixel == 32 && bitmapObj.bmBits != IntPtr.Zero)
+            {
+                var bmp = new Bitmap(bitmapObj.bmWidth, bitmapObj.bmHeight, PixelFormat.Format32bppArgb);
+                var data = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+                int srcStride = bitmapObj.bmWidth * 4;
+                int dstStride = data.Stride;
+                var rowBuf = new byte[srcStride];
+                for (int y = 0; y < bitmapObj.bmHeight; y++)
+                {
+                    var srcRow = bitmapObj.bmBits + (bitmapObj.bmHeight - 1 - y) * srcStride;
+                    Marshal.Copy(srcRow, rowBuf, 0, srcStride);
+                    Marshal.Copy(rowBuf, 0, data.Scan0 + y * dstStride, srcStride);
+                }
+                bmp.UnlockBits(data);
+                return bmp;
+            }
+
+            return Bitmap.FromHbitmap(BitmapHandle);
         }
         catch
         {
             return null;
         }
+    }
+
+    [DllImport("gdi32")]
+    private static extern int GetObject(IntPtr hObject, int nCount, ref BITMAP lpObject);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct BITMAP
+    {
+        public int bmType;
+        public int bmWidth;
+        public int bmHeight;
+        public int bmWidthBytes;
+        public short bmPlanes;
+        public short bmBitsPixel;
+        public IntPtr bmBits;
     }
 
     public void InvokeCommand()
