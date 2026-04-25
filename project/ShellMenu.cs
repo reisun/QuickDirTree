@@ -50,6 +50,7 @@ public class ShellMenu
         var item = new ToolStripMenuItem()
         {
             Text = shellItem.Text,
+            Image = shellItem.GetIcon(),
         };
         if (shellItem.HasUnderMenu)
         {

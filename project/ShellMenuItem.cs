@@ -2,6 +2,8 @@
 
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -44,6 +46,8 @@ public sealed class ShellMenuItem: IDisposable
     private IContextMenu2 cm { get; set; }
     private nint hSubMenu { get; set; }
 
+    public IntPtr BitmapHandle { get; private set; }
+
     public bool IsSeparator => Type.HasFlag(MFT.MFT_SEPARATOR);
     public bool HasUnderMenu => this.hSubMenu != IntPtr.Zero;
 
@@ -79,7 +83,7 @@ public sealed class ShellMenuItem: IDisposable
         // ---
 
         var cm = (IContextMenu2)obj;
-        hr = cm.QueryContextMenu(shellItem.OwnerMenu, 0, 0, 0x7FFF, CMF.CMF_NORMAL);
+        hr = cm.QueryContextMenu(shellItem.OwnerMenu, 0, 0, 0x7FFF, CMF.CMF_EXPLORE);
         if (hr < 0)
             throw new Win32Exception(hr);
 
@@ -104,7 +108,7 @@ public sealed class ShellMenuItem: IDisposable
         {
             var mii = new MENUITEMINFO();
             mii.cbSize = Marshal.SizeOf(typeof(MENUITEMINFO));
-            mii.fMask = MIIM.MIIM_FTYPE | MIIM.MIIM_ID | MIIM.MIIM_STATE | MIIM.MIIM_STRING | MIIM.MIIM_SUBMENU | MIIM.MIIM_DATA;
+            mii.fMask = MIIM.MIIM_FTYPE | MIIM.MIIM_ID | MIIM.MIIM_STATE | MIIM.MIIM_STRING | MIIM.MIIM_SUBMENU | MIIM.MIIM_DATA | MIIM.MIIM_BITMAP;
             if (!GetMenuItemInfo(menuHandle, i, true, ref mii))
                 throw new Win32Exception(Marshal.GetLastWin32Error());
 
@@ -124,6 +128,7 @@ public sealed class ShellMenuItem: IDisposable
             item.path = path;
             item.hSubMenu = mii.hSubMenu;
             item.cm = cm;
+            item.BitmapHandle = mii.hbmpItem;
 
             parent._items.Add(item);
         }
@@ -134,6 +139,33 @@ public sealed class ShellMenuItem: IDisposable
         this._items.Clear();
         ExtractMenu(this.path, this.cm, this.hSubMenu, this);
         return this._items;
+    }
+
+    public Image? GetIcon()
+    {
+        if (BitmapHandle == IntPtr.Zero || (long)BitmapHandle is <= 11 or < 0)
+            return null;
+
+        try
+        {
+            using var src = Bitmap.FromHbitmap(BitmapHandle);
+            if (Image.GetPixelFormatSize(src.PixelFormat) < 32)
+                return new Bitmap(src);
+
+            var bmp = new Bitmap(src.Width, src.Height, PixelFormat.Format32bppArgb);
+            var srcData = src.LockBits(new Rectangle(0, 0, src.Width, src.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+            var dstData = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+            var bytes = new byte[srcData.Stride * srcData.Height];
+            Marshal.Copy(srcData.Scan0, bytes, 0, bytes.Length);
+            Marshal.Copy(bytes, 0, dstData.Scan0, bytes.Length);
+            src.UnlockBits(srcData);
+            bmp.UnlockBits(dstData);
+            return bmp;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     public void InvokeCommand()
