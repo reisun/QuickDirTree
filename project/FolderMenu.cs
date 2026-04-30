@@ -7,13 +7,9 @@ namespace QuickDirTree;
 public class FolderMenu
 {
     private ToolStripDropDownMenu _rootMenu;
+    private bool _preventItemClickClose;
 
-    /// <summary>
-    /// ToolStripMenuItem にダブルクリック検出を付与するヘルパー。
-    /// ToolStripMenuItem には標準の DoubleClick イベントがないため、
-    /// MouseDown イベントと SystemInformation.DoubleClickTime を使って検出する。
-    /// </summary>
-    private static void AttachDoubleClick(ToolStripMenuItem item, Action onDoubleClick)
+    private void AttachDoubleClick(ToolStripMenuItem item, Action onDoubleClick, bool preventCloseOnSingleClick = false)
     {
         DateTime lastClickTime = DateTime.MinValue;
         Point lastClickPos = Point.Empty;
@@ -32,12 +28,13 @@ public class FolderMenu
                 && Math.Abs(cursorPos.X - lastClickPos.X) <= dblClickSize.Width
                 && Math.Abs(cursorPos.Y - lastClickPos.Y) <= dblClickSize.Height)
             {
-                // ダブルクリック検出
                 lastClickTime = DateTime.MinValue;
                 onDoubleClick();
             }
             else
             {
+                if (preventCloseOnSingleClick)
+                    _preventItemClickClose = true;
                 lastClickTime = now;
                 lastClickPos = cursorPos;
             }
@@ -82,6 +79,7 @@ public class FolderMenu
         _rootMenu?.Dispose();
         _rootMenu = new ToolStripDropDownMenu();
         _rootMenu.AutoClose = true;
+        AttachPreventClose(_rootMenu);
         _rootMenu.Closed += (s, e) => { _rootMenu = null; };
 
         if (dirListList.Count == 1)
@@ -129,9 +127,23 @@ public class FolderMenu
         };
     }
 
+    private void AttachPreventClose(ToolStripDropDown menu)
+    {
+        menu.Closing += (s, e) =>
+        {
+            if (e.CloseReason == ToolStripDropDownCloseReason.ItemClicked && _preventItemClickClose)
+            {
+                e.Cancel = true;
+                _preventItemClickClose = false;
+            }
+        };
+    }
+
     // 指定フォルダの内容をメニューに追加
     private void AddFolderItems(ToolStripDropDown menu, string folderPath)
     {
+        AttachPreventClose(menu);
+
         if (!Directory.Exists(folderPath))
         {
             var errItem = new ToolStripMenuItem("(存在しません)") { Enabled = false };
@@ -209,7 +221,7 @@ public class FolderMenu
             {
                 MyMsgBox.ShowWarn("ファイルを開けませんでした: " + filePath);
             }
-        });
+        }, preventCloseOnSingleClick: true);
         return item;
     }
 }
