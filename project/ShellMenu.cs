@@ -1,4 +1,4 @@
-﻿namespace QuickDirTree;
+namespace QuickDirTree;
 
 using System.Collections.Generic;
 using Reactive.Bindings.Extensions;
@@ -38,7 +38,21 @@ public class ShellMenu
     public static List<ToolStripItem> GetVerbListVer2(string path)
     {
         var menu = ShellMenuItem.ExtractMenu(path);
-        return menu.Items.Select(item => Dump(0, item, path)).ToList();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var result = new List<ToolStripItem>();
+        foreach (var item in menu.Items)
+        {
+            if (item.IsSeparator)
+            {
+                result.Add(Dump(0, item, path));
+                continue;
+            }
+            if (string.IsNullOrEmpty(item.Text) || seen.Add(item.Text))
+            {
+                result.Add(Dump(0, item, path));
+            }
+        }
+        return result;
     }
 
     static ToolStripItem Dump(int indent, ShellMenuItem shellItem, string path)
