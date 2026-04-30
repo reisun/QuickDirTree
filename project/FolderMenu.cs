@@ -8,6 +8,42 @@ public class FolderMenu
 {
     private ToolStripDropDownMenu _rootMenu;
 
+    /// <summary>
+    /// ToolStripMenuItem にダブルクリック検出を付与するヘルパー。
+    /// ToolStripMenuItem には標準の DoubleClick イベントがないため、
+    /// MouseDown イベントと SystemInformation.DoubleClickTime を使って検出する。
+    /// </summary>
+    private static void AttachDoubleClick(ToolStripMenuItem item, Action onDoubleClick)
+    {
+        DateTime lastClickTime = DateTime.MinValue;
+        Point lastClickPos = Point.Empty;
+
+        item.MouseDown += (s, e) =>
+        {
+            if (e.Button != MouseButtons.Left)
+                return;
+
+            var now = DateTime.Now;
+            var cursorPos = Cursor.Position;
+            var elapsed = (now - lastClickTime).TotalMilliseconds;
+            var dblClickSize = SystemInformation.DoubleClickSize;
+
+            if (elapsed <= SystemInformation.DoubleClickTime
+                && Math.Abs(cursorPos.X - lastClickPos.X) <= dblClickSize.Width
+                && Math.Abs(cursorPos.Y - lastClickPos.Y) <= dblClickSize.Height)
+            {
+                // ダブルクリック検出
+                lastClickTime = DateTime.MinValue;
+                onDoubleClick();
+            }
+            else
+            {
+                lastClickTime = now;
+                lastClickPos = cursorPos;
+            }
+        };
+    }
+
     public event EventHandler<ContextMenuShowwingEventArgs> ContextMenuShowwing;
 
     public void SetAutoClose(bool enable)
@@ -128,6 +164,8 @@ public class FolderMenu
     }
 
     // フォルダ用メニューアイテム生成（サブメニューで再帰）
+    // シングルクリック: サブメニュー展開（従来通り）
+    // ダブルクリック: エクスプローラーでフォルダを開く
     private ToolStripMenuItem CreateFolderMenuItem(string displayName, string folderPath)
     {
         var item = new ToolStripMenuItem(displayName);
@@ -140,16 +178,28 @@ public class FolderMenu
             mi.DropDownItems.Clear();
             AddFolderItems(mi.DropDown, folderPath);
         };
+        AttachDoubleClick(item, () =>
+        {
+            try
+            {
+                System.Diagnostics.Process.Start("explorer.exe", folderPath);
+            }
+            catch
+            {
+                MyMsgBox.ShowWarn("フォルダを開けませんでした: " + folderPath);
+            }
+        });
         return item;
     }
 
     // ファイル用メニューアイテム生成
+    // ダブルクリック: ファイルを開く（シングルクリックでは開かない）
     private ToolStripMenuItem CreateFileMenuItem(string displayName, string filePath)
     {
         var item = new ToolStripMenuItem(displayName);
         item.Tag = filePath;
         item.Image = Utils.GetTrayIcon([filePath])?.ToBitmap();
-        item.Click += (s, e) =>
+        AttachDoubleClick(item, () =>
         {
             try
             {
@@ -159,7 +209,7 @@ public class FolderMenu
             {
                 MyMsgBox.ShowWarn("ファイルを開けませんでした: " + filePath);
             }
-        };
+        });
         return item;
     }
 }
