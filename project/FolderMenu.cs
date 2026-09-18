@@ -72,7 +72,8 @@ public class FolderMenu
                 return;
             }
         }
-        Settings.Get().TargetDirectries.Value = dirListList;
+        if (!Settings.Get().TrySetDirectories(dirListList))
+            return;
 
         // 既存メニューがあれば閉じる
         _rootMenu?.Close();
