@@ -22,8 +22,9 @@ class Program
         // ドロップダウンのホイールスクロールを可能にする
         DropDownMenuScrollWheelHandler.Enable(true);
 
-        Texts.Initialize("lang.json");
-        Settings.Initialize("appsettings.json");
+        // スタートアップ起動時も、作業ディレクトリではなく実行ファイルの場所を基準にする。
+        Texts.Initialize(Path.Combine(AppContext.BaseDirectory, "lang.json"));
+        Settings.Initialize(Path.Combine(AppContext.BaseDirectory, "appsettings.json"));
         Application.ApplicationExit += (s, e) =>
         {
             Texts.Get().Save();
