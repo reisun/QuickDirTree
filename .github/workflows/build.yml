@@ -21,6 +21,9 @@ jobs:
       - name: Restore
         run: dotnet restore project/
 
+      - name: Test settings persistence
+        run: dotnet run --project tests/Settings.Tests.csproj -c Release
+
       - name: Build
         run: dotnet build project/ -c Release --no-restore
 

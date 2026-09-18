@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Reflection;
 using Newtonsoft.Json;
 
@@ -13,7 +13,7 @@ public static class Utils
             return versionInfo?.FileVersion ?? "0.0.0.0";
     }
 
-    public static Icon? GetTrayIcon(List<string> targetDirecties) {
+    public static Icon? GetTrayIcon(IReadOnlyList<string> targetDirecties) {
         var iconPath = 
             !targetDirecties.Any() ? Path.GetTempPath() // 0ヶ
             : !targetDirecties.Skip(1).Any() ? targetDirecties.First() // 1ヶのみ

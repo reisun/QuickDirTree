@@ -22,13 +22,30 @@ class Program
         // ドロップダウンのホイールスクロールを可能にする
         DropDownMenuScrollWheelHandler.Enable(true);
 
-        Texts.Initialize("lang.json");
-        Settings.Initialize("appsettings.json");
-        Application.ApplicationExit += (s, e) =>
+        // スタートアップ起動時も、作業ディレクトリではなく実行ファイルの場所を基準にする。
+        var languagePath = Path.Combine(AppContext.BaseDirectory, "lang.json");
+        var settingsPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+        void ReportError(string message) => MessageBox.Show(message, "QuickDirTree", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        try
         {
-            Texts.Get().Save();
-            Settings.Get().Save();
-        };
+            Texts.Initialize(languagePath);
+            _ = Texts.Get();
+            Settings.Initialize(settingsPath, ReportError);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or Newtonsoft.Json.JsonException)
+        {
+            ReportError($"設定ファイルを読み込めないため起動を中止します。元のファイルは変更していません。\n{languagePath}\n{settingsPath}\n{ex.Message}");
+            return;
+        }
+        // 言語設定の雛形は初回だけ作成する。終了時に設定を書き戻さない。
+        if (!File.Exists(languagePath))
+        {
+            try { Texts.Get().Save(); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or Newtonsoft.Json.JsonException)
+            {
+                ReportError($"言語設定ファイルを作成できませんでした。既定の表示で続行します。\n{languagePath}\n{ex.Message}");
+            }
+        }
 
         var hideForm = new HideForm();
         var trayIcon = new NotifyIcon();

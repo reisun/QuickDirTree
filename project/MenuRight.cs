@@ -1,4 +1,4 @@
-﻿namespace QuickDirTree;
+namespace QuickDirTree;
 
 public class MenuRight
 {
@@ -44,7 +44,7 @@ public class MenuRight
                 {
                     var newList = Settings.Get().TargetDirectries.Value.ToList();
                     newList.Remove(dir);
-                    return Settings.Get().TargetDirectries.Value = newList;
+                    return Settings.Get().TrySetDirectories(newList);
                 });
             });
         }
@@ -54,7 +54,7 @@ public class MenuRight
             {
                 var newList = Settings.Get().TargetDirectries.Value.ToList();
                 newList.Add(v);
-                return Settings.Get().TargetDirectries.Value = newList;
+                return Settings.Get().TrySetDirectories(newList);
             });
         });
         return subMenu;

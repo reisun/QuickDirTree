@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 
 namespace QuickDirTree;
 
@@ -22,12 +22,11 @@ public class Texts
     public static void Initialize(string fileName)
     {
         g_fileName = fileName;
-        g_instance = Utils.GetLazy<Texts>(fileName);
+        g_instance = new Lazy<Texts>(() => JsonFile.ReadOrDefault<Texts>(fileName));
     }
     public static Texts Get() => g_instance.Value;
     public void Save()
     {
-        string outputJson = JsonConvert.SerializeObject(g_instance.Value, Formatting.Indented);
-        File.WriteAllText(g_fileName, outputJson);
+        JsonFile.Write(g_fileName, g_instance.Value);
     }
 }
